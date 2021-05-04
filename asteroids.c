@@ -1,7 +1,10 @@
 /**
- * Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Port of my Asteroids game originally written for Raspberry Pi.
+ * Some code taken from Ardui_PI_OLED and from Pico Pi guide for C/C++
+ * Intersection detection method from Mecki's answer to a stack overflow question
+ * https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
+ * 
+ * Ian Jenkinson May 2021
  */
 
 #include <stdio.h>
@@ -13,28 +16,28 @@
 #include "display.h"
 #include <math.h>
 
-#define XPOS 0
-#define YPOS 1
-#define DELTAY 2
 #define MAX_PHOTONS 10
 #define MAX_ROIDS 12
+#define DIE_TIME 100
+#define thrust 2
+#define NO 0
+#define YES 1
+#define COLLINEAR 2
+
+
 #define GPIO_LEFT 14
 #define GPIO_RIGHT 28
 #define GPIO_FIRE 27
 #define GPIO_THRUST 26
+
 int buttons[] = {GPIO_LEFT, GPIO_RIGHT, GPIO_FIRE, GPIO_THRUST};
 double piby2 =  44.0/7.0;
-double anglemult=0.2;
-#define thrust 2
+double anglemult= 0.2;
 double l  = 10;
 double l2 = 5;
 double l3 = 8;
 double r =  0.35;
 int paws  = 0;
-//int  bigRoid[]  = { 10,0, 13,0, 15,5, 18,1, 20,2, 30,8, 30,13, 33,15, 30,18, 30,20, 20,30, 18,30, 15,35, 13,30, 10,30, 0,20, 0,18, 5,15, 2,13, 0,10 };
-//int  bigRoidA[] = { 10, 0, 13, 0, 15, 3, 18, 1, 20, 2, 30, 8, 28,13, 33,15, 30,18, 25,15,  0,18,  5,15,  2,13, 0,10 };
-//int  bigRoidB[] = { 30,18, 30,20, 20,30, 18,30, 15,35, 13,30, 10,30,  0,20,  0,18, 25,15, 30,18, 33,15, 28,13 };
-//int  medRoid[] = { 5,0, 10,0, 15,5,13,8, 15,10,13,12, 10,15, 7,12, 5,15, 0,10, 0,5 };
 int photonX[MAX_PHOTONS];
 int photonY[MAX_PHOTONS];
 double photonDX[MAX_PHOTONS];
@@ -43,26 +46,24 @@ double photonSpeed = thrust*2;
 int photonLife[MAX_PHOTONS];
 int shipActive;
 int shipDieTimer;
-int score=0;
-int level=1;
-int lives=3;
-void respawnRoids();
+int score = 0;
+int level = 1;
+int lives = 3;
 int mX = -30;
 int mY = 20;
 int showMS = 0;
-int apLife=0;
-float apx=0, apy=0;
-float apdx=0, apdy=0;
-int invincibility=0;
-int showMSAgainTimer =0;
+int apLife = 0;
+float apx = 0, apy = 0;
+float apdx = 0, apdy = 0;
+int invincibility = 0;
+int showMSAgainTimer = 0;
+
+void respawnRoids();
 
 
 float rando(int max) {
     return ((float) max) * ((float) rand()) / ((float) RAND_MAX);
 }
-#define NO 0
-#define YES 1
-#define COLLINEAR 2
 
 int areIntersecting(
     float v1x1, float v1y1, float v1x2, float v1y2,
@@ -121,25 +122,18 @@ int areIntersecting(
     return YES;
 }
 
-
-/* ======================================================================
-Function: main
-Purpose : Main entry Point
-Input 	: -
-Output	: -
-Comments: 
-====================================================================== */
 struct roid {
-double px[50];
-double py[50];
-int npoints;
-float x;
-float y;
-float dx;
-float dy;
-int show;
-int size;
+   double px[50];
+   double py[50];
+   int npoints;
+   float x;
+   float y;
+   float dx;
+   float dy;
+   int show;
+   int size;
 };
+
 struct roid roids[MAX_ROIDS];
 
 void drawRoid(struct roid * r) {
@@ -235,7 +229,6 @@ void moveRoid(struct roid *r) {
   if (r->y < 0) r->y+=128;
   if (r->y > 127) r->y-=128;
 }
-#define DIE_TIME 100
 void drawShip(int x, int y, double angle ) {
   double boom = (DIE_TIME - shipDieTimer) / 2;
   double cangle=cos(angle);
@@ -483,7 +476,7 @@ int checkShipCollision(int x, int y) {
           int y1 = roids[i].py[j] + ry;
           int p = j < roids[i].npoints - 1 ? j + 1 :0;
           int x2 = roids[i].px[p] + rx;
-       	  int y2 = roids[i].py[p] + ry;
+          int y2 = roids[i].py[p] + ry;
           int r = calcDistFromShip(x,y,x1,y1,x2,y2);
   //        printf("Checking roid %d(%d-%d/%d), r=%d\n",i,j,p,roids[i].npoints,r);
           if (r < 25) {
@@ -522,7 +515,6 @@ void respawnRoids() {
     roids[r].show = 1;
     float size = ((r  % 4) + 1);
     roids[r].size = (int) size;
-//    roids[r].npoints = (r % 2) ? NELEMS(bigRoid) / 2 : NELEMS(medRoid) / 2;
     roids[r].npoints = roids[r].size * 12;
     double a = 0;
     double da = (3.14159 * 2.0) / roids[r].npoints;
@@ -732,8 +724,8 @@ int main(int argc, char *argv[]) {
       gpio_pull_down(buttons[i]);
     }
 
-  setTextSize(2);
-  setTextColor(1);
+    setTextSize(2);
+    setTextColor(1);
 
     setCursor(10,40);
     print("ASTEROIDS");

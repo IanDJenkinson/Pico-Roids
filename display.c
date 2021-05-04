@@ -5,6 +5,15 @@
 #include "hardware/i2c.h"
 #include "display.h"
 
+/**
+ * Mostly lifted directly from Ardui_PI_OLED with various tweaks
+ * display() and initScreen() methods are my own
+ * Note that for ease of drawing the buffer to the device I decided 
+ * to include the data command byte directly at the start of every row 
+ * in my internal buffer (instead of creating a buffer when writing each row and adding data command to start)
+ * The arithmetic to find the correct location of each pixel's byte needs to include that, but then
+ * it's much easier (and doesn't require any extra copying of buffers) when outputting to the device
+ */
 
 #include "display.h"
 
@@ -291,6 +300,12 @@ void sendCommand2(char whata, char whatb) {
 void writeBytes(char * data, int len) {
     i2c_write_blocking(i2c_default, addr, data, len, 0);
 }
+
+/**
+ * Test method, left here for future reference this is how I 
+ * worked out what was being displayed when I drew to the screen
+ **/
+  
 void displayLine(int y, unsigned char * line, int len) {
     sendCommand(SSD_LowerColStartAddress  | 0x0); // low col = 0
     sendCommand(SSD_HigherColStartAddress | 0x0); // hi col = 0
