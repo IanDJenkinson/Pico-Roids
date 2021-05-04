@@ -560,7 +560,11 @@ void moveMotherShip() {
     }
   }
 }
-
+/**
+ * Test drawing method no longer used, but handy as a reminder
+ * of how things get drawn on SH1107
+ * 
+ **/
 void draw() {
 
     char bits[]={1,2,4,8,16,32,64,128};
